@@ -18,6 +18,6 @@ namespace Tandem
         public const string Disclaimer =
             "Unofficial tool. Not made by, affiliated with or endorsed by Anthropic.\n" +
             "\"Claude\" is a trademark of Anthropic.";
-        public static readonly string Website = "";         // project page, filled in when published
+        public static readonly string Website = "https://github.com/dtw7h645mg-maker/tandem-for-claude";
     }
 }
