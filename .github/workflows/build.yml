@@ -1,0 +1,65 @@
+name: Build
+
+# Every push builds Tandem.exe. Pushing a tag like v1.0.0 also publishes it as a release.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: cmd
+        run: build.cmd
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $help = & .\dist\Tandem.exe --help | Out-String
+          if ($help -notmatch '--launch') { throw "Tandem.exe --help printed nothing useful: $help" }
+          $list = & .\dist\Tandem.exe --list | Out-String
+          Write-Host $list
+          if ($list -notmatch 'Claude\s+not running') { throw "Tandem.exe --list did not list the default profile: $list" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\Tandem.exe, README.md, LICENSE -DestinationPath dist\Tandem-for-Claude.zip
+          "$((Get-FileHash dist\Tandem.exe -Algorithm SHA256).Hash.ToLower())  Tandem.exe" | Set-Content dist\SHA256.txt
+          Get-Content dist\SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tandem
+          path: |
+            dist/Tandem.exe
+            dist/Tandem-for-Claude.zip
+            dist/SHA256.txt
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Tandem for Claude ${{ github.ref_name }}
+          make_latest: true
+          files: |
+            dist/Tandem.exe
+            dist/Tandem-for-Claude.zip
+            dist/SHA256.txt
+          body: |
+            **Download `Tandem.exe`**, put it in a folder where it can stay, and double-click it.
+
+            Free and open source. Runs several Claude Desktop accounts side by side on Windows 10 and 11. It never goes online.
+
+            First start: Windows may show "Windows protected your PC". Click **More info**, then **Run anyway**. The file is not code-signed; it was built from this source by GitHub, and `SHA256.txt` lets you check your download.
+
+            Unofficial tool. Not made by, affiliated with or endorsed by Anthropic.
