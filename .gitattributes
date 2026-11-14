@@ -1,0 +1,3 @@
+* text=auto
+# Batch files must keep Windows line endings, also in a ZIP download.
+*.cmd -text
